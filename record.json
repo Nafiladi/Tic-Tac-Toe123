@@ -1,0 +1,68 @@
+{
+    "create_room": {
+      "success": {
+        "room": "1234"
+      },
+      "error": {
+        "message": "Error creating room."
+      }
+    },
+    "join_room": {
+      "success": {
+        "success": true,
+        "symbol": "X"
+      },
+      "error_room_full": {
+        "success": false,
+        "message": "Room is full."
+      },
+      "error_room_not_exist": {
+        "success": false,
+        "message": "Room does not exist."
+      }
+    },
+    "make_move": {
+      "success": {
+        "success": true
+      },
+      "error_not_your_turn": {
+        "success": false,
+        "message": "Not your turn."
+      },
+      "error_cell_taken": {
+        "success": false,
+        "message": "Cell already taken."
+      },
+      "error_invalid_game": {
+        "success": false,
+        "message": "Invalid game or game over."
+      }
+    },
+    "get_game_state": {
+      "success": {
+        "board": ["X", "O", "", "", "X", "", "", "O", ""],
+        "turn": "O",
+        "game_over": false,
+        "winner": null,
+        "winning_combination": []
+      },
+      "game_over": {
+        "board": ["X", "O", "X", "O", "X", "O", "X", "X", "O"],
+        "turn": "X",
+        "game_over": true,
+        "winner": "X",
+        "winning_combination": [0, 3, 6]
+      },
+      "tie": {
+        "board": ["X", "O", "X", "O", "X", "O", "O", "X", "X"],
+        "turn": "X",
+        "game_over": true,
+        "winner": "Tie",
+        "winning_combination": []
+      },
+      "error": {
+        "message": "Room does not exist."
+      }
+    }
+  }
+  
