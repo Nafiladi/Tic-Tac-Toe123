@@ -1,0 +1,208 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tic-Tac-Toe Web Game</title>
+    <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding-top: 30px;
+            background-color: #f0f0f0;
+        }
+        #setup, #game {
+            display: inline-block;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #e0e0e0;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        button, input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Welcome to Web-based Tic-Tac-Toe!</h1>
+    <div id="setup">
+        <button id="createRoomBtn">Create Game Room</button>
+        <p>OR</p>
+        <input type="text" id="roomInput" placeholder="Enter Room ID">
+        <button id="joinRoomBtn">Join Game Room</button>
+    </div>
+
+    <div id="game" style="display: none;">
+        <h2>Room ID: <span id="roomId"></span></h2>
+        <div id="board"></div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let room = '';
+        let playerSymbol = '';
+        let myTurn = false;
+
+        document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+        document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
+
+        function createRoom() {
+            const username = prompt('Enter your name:');
+            if (username) {
+                fetch('/create_room', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    room = data.room;
+                    playerSymbol = 'X';
+                    initializeGame(username);
+                });
+            }
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('roomInput').value;
+            const username = prompt('Enter your name:');
+            if (username && roomId) {
+                fetch('/join_room', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({room: roomId, username: username})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        room = roomId;
+                        playerSymbol = data.symbol;
+                        initializeGame(username);
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+
+        function initializeGame(username) {
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            document.getElementById('roomId').innerText = room;
+            createBoard();
+            pollGameState();
+        }
+
+        function createBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.addEventListener('click', makeMove);
+                boardDiv.appendChild(cell);
+            }
+        }
+
+        function makeMove(event) {
+            if (myTurn && event.target.textContent === '') {
+                const index = parseInt(event.target.dataset.index);
+                fetch('/make_move', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({room: room, index: index, symbol: playerSymbol})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        myTurn = false;
+                        updateStatus("Opponent's turn...");
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+
+        function pollGameState() {
+            fetch(`/get_game_state?room=${room}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.board) {
+                    updateBoard(data.board);
+
+                    if (data.game_over) {
+                        if (data.winner === 'Tie') {
+                            updateStatus("It's a tie! 🤝");
+                        } else if (data.winner === playerSymbol) {
+                            updateStatus('You win! 🎉');
+                            highlightWinningCells(data.winning_combination, '#2ecc71');
+                        } else {
+                            updateStatus('You lose. 💔');
+                            highlightWinningCells(data.winning_combination, '#e74c3c');
+                        }
+                        myTurn = false;
+                    } else {
+                        if (data.turn === playerSymbol) {
+                            myTurn = true;
+                            updateStatus('Your turn.');
+                        } else {
+                            myTurn = false;
+                            updateStatus("Opponent's turn...");
+                        }
+                        setTimeout(pollGameState, 1000);  // Continue polling
+                    }
+                } else {
+                    alert('Game not found.');
+                }
+            });
+        }
+
+        function updateBoard(board) {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                cell.textContent = board[index];
+                cell.style.backgroundColor = '';
+            });
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function highlightWinningCells(indices, color) {
+            indices.forEach(index => {
+                const cell = document.querySelector(`.cell[data-index='${index}']`);
+                cell.style.backgroundColor = color;
+                cell.style.color = '#fff';
+            });
+        }
+    </script>
+
+</body>
+</html>
